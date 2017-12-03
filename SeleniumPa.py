@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 from selenium import webdriver
-import urllib
+from urllib import request
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -10,7 +10,7 @@ import pytesseract
 from PIL import Image
 import codecs
 
-searchDate = '2010-09-29'
+searchDate = '2010-11-01'
 
 def write_txt(text):
     f = codecs.open('C:\\ids\\刑事案件.txt', 'a', 'utf8')
@@ -28,38 +28,30 @@ def openUrl(params):
     getData(driver)
 
 def getData(driver):
-    try:
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'dataItem')))
-        ids = driver.find_elements_by_class_name("DocIds")
-        if(len(ids) > 0):
-            for id in ids:
-                write_txt(id.get_property('value') + ';\n')
-            driver.execute_script("$('.next').trigger('click')")
-            sleep(5)
-            if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
-                getData(driver)
+    if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
+        dealWithValidationImage(driver)
+    else:
+        try:
+            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'dataItem')))
+            ids = driver.find_elements_by_class_name("DocIds")
+            if(len(ids) > 0):
+                for id in ids:
+                    write_txt(id.get_property('value') + ';\n')
+                driver.execute_script("$('.next').trigger('click')")
+                sleep(5)
+                if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
+                    getData(driver)
+                else:
+                    driver.close()
+                    updateSearchDate(searchDate)
+                    openUrl(getParams(searchDate))
+        except exceptions.TimeoutException:
+            if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
+                dealWithValidationImage(driver)
             else:
                 driver.close()
                 updateSearchDate(searchDate)
                 openUrl(getParams(searchDate))
-    except exceptions.TimeoutException:
-        if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
-            print(Image.PILLOW_VERSION)
-            url = "http://wenshu.court.gov.cn/User/ValidateCode"
-            f = open('C:\\ids\\vcode.jpeg', 'wb')
-            req = urllib.request.urlopen(url)
-            buf = req.read()
-            f.write(buf)
-            sleep(5)
-            image = Image.open(r'C:\ids\vcode.jpeg')
-            vcode = pytesseract.image_to_string(image)
-            print(vcode)
-            driver.execute_script("$('#txtValidateCode').val("+vcode+")")
-            driver.execute_script("$('.btn_validatecode').trigger('click')")
-        else:
-            driver.close()
-            updateSearchDate(searchDate)
-            openUrl(getParams(searchDate))
 
 
 
@@ -88,6 +80,19 @@ def updateSearchDate(date):
 
     global searchDate
     searchDate = str(year) + '-' + str(month) + '-' + str(day)
+
+def dealWithValidationImage(driver):
+    print('validation')
+    url = "http://wenshu.court.gov.cn/User/ValidateCode"
+    jpgLink= 'C:\\ids\\vcode.jpg'
+    request.urlretrieve(url,filename=jpgLink)
+    sleep(5)
+    image = Image.open('C:\\ids\\vcode.jpg')
+    vcode = pytesseract.image_to_string(image)
+    print(vcode)
+    driver.execute_script("$('#txtValidateCode').val("+vcode+")")
+    driver.execute_script("$('.btn_validatecode').trigger('click')")
+
 
 def main():
     params = getParams(searchDate)
