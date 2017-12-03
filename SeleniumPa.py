@@ -29,7 +29,7 @@ def openUrl(params):
 
 def getData(driver):
     try:
-        WebDriverWait(driver, 1).until(EC.presence_of_element_located((By.CLASS_NAME,'dataItem')))
+        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'dataItem')))
         ids = driver.find_elements_by_class_name("DocIds")
         if(len(ids) > 0):
             for id in ids:
