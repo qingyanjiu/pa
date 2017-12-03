@@ -82,6 +82,7 @@ def updateSearchDate(date):
     searchDate = str(year) + '-' + str(month) + '-' + str(day)
 
 def dealWithValidationImage(driver):
+#     driver.execute_script("window.parent.location.href='/Transfer.aspx'")
     print('validation')
     url = "http://wenshu.court.gov.cn/User/ValidateCode"
     jpgLink= 'C:\\ids\\vcode.jpg'
