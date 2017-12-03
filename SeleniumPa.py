@@ -26,18 +26,20 @@ def openUrl(params):
 def getData(driver):
     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'dataItem')))
     ids = driver.find_elements_by_class_name("DocIds")
-    if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
+    if(len(ids) > 0):
         for id in ids:
             write_txt(id.get_property('value') + ';')
-        sleep(10)
-        # driver.execute_script("$('.next').trigger('click')")
-        # getData(driver)
-    else:
-        date = "2017-12"
-        openUrl(getParams(date))
+        driver.execute_script("$('.next').trigger('click')")
+        sleep(5)
+        if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
+            getData(driver)
+        else:
+            driver.close()
+            date = "2017-12"
+            openUrl(getParams(date))
 
 def getParams(date):
-    params = '裁判日期:2017-12-01 TO 2017-12-31'
+    params = '裁判日期:'+date+'-01 TO '+date+'-31'
     return params
 
 def main():
