@@ -10,7 +10,7 @@ import pytesseract
 from PIL import Image
 import codecs
 
-searchDate = '2010-11-01'
+searchDate = '2011-01-18'
 
 def write_txt(text):
     f = codecs.open('C:\\ids\\刑事案件.txt', 'a', 'utf8')
@@ -22,7 +22,7 @@ def openUrl(params):
     driver.get('http://wenshu.court.gov.cn/List/List?sorttype=1&conditions=searchWord+1+AJLX++%E6%A1%88%E4%BB%B6%E7%B1%BB%E5%9E%8B:%E5%88%91%E4%BA%8B%E6%A1%88%E4%BB%B6')
     driver.execute_script("$('#gover_search_key').val('"+params+"')")
     driver.execute_script("$('#btnSearch').trigger('click')")
-    sleep(5)
+    sleep(10)
     driver.execute_script("$(\"li[id*='_input_20']\").trigger('click')")
     sleep(5)
     getData(driver)
@@ -82,17 +82,22 @@ def updateSearchDate(date):
     searchDate = str(year) + '-' + str(month) + '-' + str(day)
 
 def dealWithValidationImage(driver):
-#     driver.execute_script("window.parent.location.href='/Transfer.aspx'")
     print('validation')
-    url = "http://wenshu.court.gov.cn/User/ValidateCode"
-    jpgLink= 'C:\\ids\\vcode.jpg'
-    request.urlretrieve(url,filename=jpgLink)
-    sleep(5)
-    image = Image.open('C:\\ids\\vcode.jpg')
-    vcode = pytesseract.image_to_string(image)
-    print(vcode)
-    driver.execute_script("$('#txtValidateCode').val("+vcode+")")
-    driver.execute_script("$('.btn_validatecode').trigger('click')")
+    # driver.execute_script("window.parent.location.href='/Transfer.aspx'")
+    sleep(60*10)
+    driver.close()
+    openUrl(getParams(searchDate))
+
+    # print('validation')
+    # url = "http://wenshu.court.gov.cn/User/ValidateCode"
+    # jpgLink= 'C:\\ids\\vcode.jpg'
+    # request.urlretrieve(url,filename=jpgLink)
+    # sleep(5)
+    # image = Image.open('C:\\ids\\vcode.jpg')
+    # vcode = pytesseract.image_to_string(image)
+    # print(vcode)
+    # driver.execute_script("$('#txtValidateCode').val("+vcode+")")
+    # driver.execute_script("$('.btn_validatecode').trigger('click')")
 
 
 def main():
