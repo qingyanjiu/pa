@@ -10,10 +10,12 @@ import pytesseract
 from PIL import Image
 import codecs
 
-searchDate = '2011-01-18'
+searchDate = '2011-11-30'
+currentYear = '2011';
 
 def write_txt(text):
-    f = codecs.open('C:\\ids\\刑事案件.txt', 'a', 'utf8')
+    # f = codecs.open('C:\\ids\\刑事案件.txt', 'a', 'utf8')
+    f = codecs.open(r'/Users/user/Documents/刑事案件-'+currentYear+'.txt', 'a', 'utf8')
     f.write(str(text))
     f.close()
 
@@ -32,19 +34,24 @@ def getData(driver):
         dealWithValidationImage(driver)
     else:
         try:
-            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'dataItem')))
+            WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
             ids = driver.find_elements_by_class_name("DocIds")
             if(len(ids) > 0):
                 for id in ids:
                     write_txt(id.get_property('value') + ';\n')
                 driver.execute_script("$('.next').trigger('click')")
                 sleep(5)
-                if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
-                    getData(driver)
+
+                if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
+                    dealWithValidationImage(driver)
                 else:
-                    driver.close()
-                    updateSearchDate(searchDate)
-                    openUrl(getParams(searchDate))
+
+                    if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
+                        getData(driver)
+                    else:
+                        driver.close()
+                        updateSearchDate(searchDate)
+                        openUrl(getParams(searchDate))
         except exceptions.TimeoutException:
             if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
                 dealWithValidationImage(driver)
@@ -77,27 +84,29 @@ def updateSearchDate(date):
         else:
             month = '01'
             year = int(year) + 1
+            global currentYear
+            currentYear = year
 
     global searchDate
     searchDate = str(year) + '-' + str(month) + '-' + str(day)
 
 def dealWithValidationImage(driver):
-    print('validation')
-    # driver.execute_script("window.parent.location.href='/Transfer.aspx'")
-    sleep(60*10)
+    print('validationImage')
+    driver.save_screenshot(r'ValidateCode.png')
+    sleep(3)
+    image = Image.open(r'ValidateCode.png')
+    # box = (506,141,564,164)
+    box = (594,142,652,169)
+    region = image.crop(box)
+    region.save(r'ValidateCode.png')
+    vcode = pytesseract.image_to_string(region)
+    print('validationCode:%s' % vcode)
+    driver.execute_script("$('#txtValidateCode').val('"+vcode+"')")
+    driver.execute_script("$('#btnLogin').trigger('click')")
+    sleep(10)
     driver.close()
-    openUrl(getParams(searchDate))
-
-    # print('validation')
-    # url = "http://wenshu.court.gov.cn/User/ValidateCode"
-    # jpgLink= 'C:\\ids\\vcode.jpg'
-    # request.urlretrieve(url,filename=jpgLink)
-    # sleep(5)
-    # image = Image.open('C:\\ids\\vcode.jpg')
-    # vcode = pytesseract.image_to_string(image)
-    # print(vcode)
-    # driver.execute_script("$('#txtValidateCode').val("+vcode+")")
-    # driver.execute_script("$('.btn_validatecode').trigger('click')")
+    params = getParams(searchDate)
+    openUrl(params)
 
 
 def main():
