@@ -9,17 +9,19 @@ from time import sleep
 import pytesseract
 from PIL import Image
 import codecs
+import time
 
 searchDate = '2012-04-20'
 currentYear = '2012';
 
 def write_txt(text):
-    # f = codecs.open('C:\\ids\\刑事案件.txt', 'a', 'utf8')
-    f = codecs.open(r'/Users/user/Documents/刑事案件test-'+currentYear+'.txt', 'a', 'utf8')
+    f = codecs.open('C:\\ids\\刑事案件test-'+currentYear+'.txt', 'a', 'utf8')
+    # f = codecs.open(r'/Users/user/Documents/刑事案件test-'+currentYear+'.txt', 'a', 'utf8')
     f.write(str(text))
     f.close()
 
 def openUrl(params):
+    print('open new page,params : ' + params + ' [' + time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())) + ']')
     driver = webdriver.Chrome()
     try:
         driver.get('http://wenshu.court.gov.cn/List/List?sorttype=1&conditions=searchWord+1+AJLX++%E6%A1%88%E4%BB%B6%E7%B1%BB%E5%9E%8B:%E5%88%91%E4%BA%8B%E6%A1%88%E4%BB%B6')
@@ -27,15 +29,25 @@ def openUrl(params):
         driver.execute_script("$('#gover_search_key').val('"+params+"')")
         driver.execute_script("$('#btnSearch').trigger('click')")
         WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
-        sleep(5)
-        driver.execute_script("$(\"li[id*='_input_20']\").trigger('click')")
-        sleep(5)
-        getData(driver)
-    except Exception:
-        print('openUrl exception, maybe weak net work')
-        driver.close()
         sleep(10)
-        openUrl(params)
+        driver.execute_script("$(\"li[id*='_input_20']\").trigger('click')")
+        #判断每页显示20条是否已经选中
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR,"li[id*='_input_20'][class='selected']")))
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
+        sleep(10)
+        getData(driver)
+    except exceptions.UnexpectedAlertPresentException:
+            print('website alerts || maybe over 400 records of today, skip to next day')
+            skipToNextDay(driver)
+    except exceptions.TimeoutException:
+        if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
+            or driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
+            dealWithValidationImage(driver)
+        else:
+            print('openUrl exception, maybe weak net work,retry today')
+            driver.close()
+            sleep(10)
+            openUrl(params)
 
 def getData(driver):
     # if(driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
@@ -51,30 +63,35 @@ def getData(driver):
                     write_txt(id.get_property('value') + ';\n')
                 driver.execute_script("$('.next').trigger('click')")
                 sleep(5)
-                if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
+                if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
+                   or driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
                     dealWithValidationImage(driver)
                 else:
-
                     if(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') != 'rgba(153, 153, 153, 1)'):
                         getData(driver)
-                    else:
+                    elif(driver.find_elements_by_class_name('next')[0].value_of_css_property('color') == 'rgba(153, 153, 153, 1)'):
                         driver.close()
                         updateSearchDate(searchDate)
                         openUrl(getParams(searchDate))
-        except Exception:
-            if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
+                    else:
+                        print('maybe exists some unknown issue, skip to next day')
+                        skipToNextDay(driver)
+        except exceptions.UnexpectedAlertPresentException:
+            print('maybe over 400 records of today, skip to next day')
+            skipToNextDay(driver)
+        except exceptions.TimeoutException:
+            if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
+               or driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
                 dealWithValidationImage(driver)
             else:
-                print('get Data exception, maybe over 400 records of today')
                 driver.close()
-                updateSearchDate(searchDate)
+                sleep(10)
                 openUrl(getParams(searchDate))
 
 
 
 def getParams(date):
     params = '裁判日期:'+date+' TO '+date
-    print(params)
     return params
 
 def updateSearchDate(date):
@@ -105,8 +122,8 @@ def dealWithValidationImage(driver):
     driver.save_screenshot(r'ValidateCode.png')
     sleep(3)
     image = Image.open(r'ValidateCode.png')
-    # box = (506,141,564,164)
-    box = (594,142,652,169)
+    box = (506,141,564,164)
+    # box = (594,142,652,169)
     region = image.crop(box)
     region.save(r'ValidateCode.png')
     vcode = pytesseract.image_to_string(region)
@@ -118,6 +135,11 @@ def dealWithValidationImage(driver):
     params = getParams(searchDate)
     openUrl(params)
 
+def skipToNextDay(driver):
+    driver.close()
+    sleep(10)
+    updateSearchDate(searchDate)
+    openUrl(getParams(searchDate))
 
 def main():
     params = getParams(searchDate)
