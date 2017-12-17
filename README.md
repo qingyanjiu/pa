@@ -3,12 +3,11 @@
 https://www.python.org/downloads/release/python-340/ 
 
 他会自动安装pip 
- 
-
+<br/>
 2.安装selenium（浏览器模拟点击） 
 
 pip install selenium 
-
+<br/>
 
 3.下载chrome浏览器支持selenium的内核 
 
@@ -18,7 +17,7 @@ http://chromedriver.storage.googleapis.com/2.33/chromedriver_win32.zip
 
 https://sites.google.com/a/chromium.org/chromedriver/downloads 
  
-
+<br/>
 4.安装Pillow （图片处理） 
 
 pip install Pillow 
@@ -27,7 +26,7 @@ pip install Pillow
 5.安装pytesseract 
 
 pip install pytesseract 
- 
+<br/> 
 
 6.安装tesseract-ocr（图片文字识别） 
 
@@ -39,5 +38,5 @@ PS:Mac 安装tesseract
 
 brew install tesseract 
  
-
-运行 SeleniumPa.py 
+<br/>
+7.运行 SeleniumPa.py 
