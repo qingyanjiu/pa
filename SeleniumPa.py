@@ -10,27 +10,37 @@ import pytesseract
 from PIL import Image
 import codecs
 
-searchDate = '2011-11-30'
-currentYear = '2011';
+searchDate = '2012-04-20'
+currentYear = '2012';
 
 def write_txt(text):
     # f = codecs.open('C:\\ids\\刑事案件.txt', 'a', 'utf8')
-    f = codecs.open(r'/Users/user/Documents/刑事案件-'+currentYear+'.txt', 'a', 'utf8')
+    f = codecs.open(r'/Users/user/Documents/刑事案件test-'+currentYear+'.txt', 'a', 'utf8')
     f.write(str(text))
     f.close()
 
 def openUrl(params):
     driver = webdriver.Chrome()
-    driver.get('http://wenshu.court.gov.cn/List/List?sorttype=1&conditions=searchWord+1+AJLX++%E6%A1%88%E4%BB%B6%E7%B1%BB%E5%9E%8B:%E5%88%91%E4%BA%8B%E6%A1%88%E4%BB%B6')
-    driver.execute_script("$('#gover_search_key').val('"+params+"')")
-    driver.execute_script("$('#btnSearch').trigger('click')")
-    sleep(10)
-    driver.execute_script("$(\"li[id*='_input_20']\").trigger('click')")
-    sleep(5)
-    getData(driver)
+    try:
+        driver.get('http://wenshu.court.gov.cn/List/List?sorttype=1&conditions=searchWord+1+AJLX++%E6%A1%88%E4%BB%B6%E7%B1%BB%E5%9E%8B:%E5%88%91%E4%BA%8B%E6%A1%88%E4%BB%B6')
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
+        driver.execute_script("$('#gover_search_key').val('"+params+"')")
+        driver.execute_script("$('#btnSearch').trigger('click')")
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
+        sleep(5)
+        driver.execute_script("$(\"li[id*='_input_20']\").trigger('click')")
+        sleep(5)
+        getData(driver)
+    except Exception:
+        print('openUrl exception, maybe weak net work')
+        driver.close()
+        sleep(10)
+        openUrl(params)
 
 def getData(driver):
-    if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
+    # if(driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
+    if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
+       or driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
         dealWithValidationImage(driver)
     else:
         try:
@@ -41,7 +51,6 @@ def getData(driver):
                     write_txt(id.get_property('value') + ';\n')
                 driver.execute_script("$('.next').trigger('click')")
                 sleep(5)
-
                 if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
                     dealWithValidationImage(driver)
                 else:
@@ -52,10 +61,11 @@ def getData(driver):
                         driver.close()
                         updateSearchDate(searchDate)
                         openUrl(getParams(searchDate))
-        except exceptions.TimeoutException:
+        except Exception:
             if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'):
                 dealWithValidationImage(driver)
             else:
+                print('get Data exception, maybe over 400 records of today')
                 driver.close()
                 updateSearchDate(searchDate)
                 openUrl(getParams(searchDate))
