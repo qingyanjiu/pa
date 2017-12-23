@@ -11,11 +11,11 @@ from PIL import Image
 import codecs
 import time
 
-searchDate = '2012-04-20'
-currentYear = '2012';
+searchDate = '2012-01-10'
+currentYear = '2012'
 
 def write_txt(text):
-    f = codecs.open('C:\\ids\\刑事案件test-'+currentYear+'.txt', 'a', 'utf8')
+    f = codecs.open('C:\\ids\\刑事案件-'+currentYear+'.txt', 'a', 'utf8')
     # f = codecs.open(r'/Users/user/Documents/刑事案件test-'+currentYear+'.txt', 'a', 'utf8')
     f.write(str(text))
     f.close()
@@ -28,13 +28,14 @@ def openUrl(params):
         WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
         driver.execute_script("$('#gover_search_key').val('"+params+"')")
         driver.execute_script("$('#btnSearch').trigger('click')")
-        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
-        sleep(10)
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='removeCondtion'][val='"+params+"']")))
+        print('page params ok')
+        sleep(5)
         driver.execute_script("$(\"li[id*='_input_20']\").trigger('click')")
         #判断每页显示20条是否已经选中
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR,"li[id*='_input_20'][class='selected']")))
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR,"li[id*='_input_20'][class='selected']")))
         WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, 'dataItem')))
-        sleep(10)
+        sleep(5)
         getData(driver)
     except exceptions.UnexpectedAlertPresentException:
             print('website alerts || maybe over 400 records of today, skip to next day')
@@ -48,7 +49,11 @@ def openUrl(params):
             driver.close()
             sleep(10)
             openUrl(params)
-
+    except exceptions.WebDriverException:
+        print('openUrl WebDriver exception, maybe weak net work,retry today')
+        driver.close()
+        sleep(10)
+        openUrl(params)
 def getData(driver):
     # if(driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
     if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
@@ -60,7 +65,7 @@ def getData(driver):
             ids = driver.find_elements_by_class_name("DocIds")
             if(len(ids) > 0):
                 for id in ids:
-                    write_txt(id.get_property('value') + ';\n')
+                    write_txt(id.get_property('value') + '\n')
                 driver.execute_script("$('.next').trigger('click')")
                 sleep(5)
                 if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
@@ -84,10 +89,15 @@ def getData(driver):
                or driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
                 dealWithValidationImage(driver)
             else:
+                print('get data timeout, maybe weak net work,retry today')
                 driver.close()
                 sleep(10)
                 openUrl(getParams(searchDate))
-
+        except exceptions.WebDriverException:
+            print('get data WebDriver exception, maybe weak net work,retry today')
+            driver.close()
+            sleep(10)
+            openUrl(getParams(searchDate))
 
 
 def getParams(date):
