@@ -11,8 +11,9 @@ from PIL import Image
 import codecs
 import time
 
-searchDate = '2012-01-10'
+searchDate = '2012-07-07'
 currentYear = '2012'
+retryTimes = 0
 
 def write_txt(text):
     f = codecs.open('C:\\ids\\刑事案件-'+currentYear+'.txt', 'a', 'utf8')
@@ -46,14 +47,27 @@ def openUrl(params):
             dealWithValidationImage(driver)
         else:
             print('openUrl exception, maybe weak net work,retry today')
-            driver.close()
-            sleep(10)
-            openUrl(params)
+            # 如果没查到数据，重试3次 如果都没数据说明今天就是没数据，跳过
+            global retryTimes
+            print('retried ' + str(retryTimes) +' times')
+            if(retryTimes > 3):
+                print('today has no data, skip to next day')
+                skipToNextDay(driver)
+                retryTimes = 0
+            else:
+                retryTimes = retryTimes + 1
+                driver.close()
+                sleep(10)
+                openUrl(params)
     except exceptions.WebDriverException:
         print('openUrl WebDriver exception, maybe weak net work,retry today')
         driver.close()
         sleep(10)
         openUrl(params)
+    except Exception:
+        print('openUrl unknown exception, skip to next day')
+        skipToNextDay(driver)
+
 def getData(driver):
     # if(driver.current_url == 'http://wenshu.court.gov.cn/waf_verify.htm'):
     if(driver.current_url == 'http://wenshu.court.gov.cn/Html_Pages/VisitRemind.html'
@@ -94,10 +108,13 @@ def getData(driver):
                 sleep(10)
                 openUrl(getParams(searchDate))
         except exceptions.WebDriverException:
-            print('get data WebDriver exception, maybe weak net work,retry today')
+            print('get data WebDriver exception, maybe ip blocked,wait for 10 minutes and retry today')
             driver.close()
-            sleep(10)
+            sleep(60*10)
             openUrl(getParams(searchDate))
+        except Exception:
+            print('get data unknown exception, skip to next day')
+            skipToNextDay(driver)
 
 
 def getParams(date):
